@@ -3,10 +3,120 @@
 import tkinter as tk
 from tkinter import messagebox
 import customtkinter as ctk
+from PIL import Image  # Pour l'affichage d'images 
+# pip install Pillow
 
 # Les imports de l'API
 import urllib.request
 import json
+
+# ================ Les ameliorations : 
+# Amelioration 1
+""" 
+🚀 AMÉLIORATION 1 : Température en très grand
+Objectif
+Afficher la température dans un label séparé, avec une police beaucoup plus grande (ex: taille 48),
+ pour que ce soit l'information principale de l'interface.
+
+Concepts à comprendre
+Un CTkLabel peut avoir une police différente des autres
+
+Tu peux avoir plusieurs labels dans le même frame
+
+ctk.CTkFont(size=48, weight="bold")
+
+Tâches à réaliser
+Tâche 1 : Créer un label spécifique pour la température
+Dans la zone d'affichage, crée deux labels au lieu d'un seul :
+
+label_temperature (police très grande)
+
+label_details (police normale pour le reste)
+
+Tâche 2 : Organiser ces deux labels
+Soit l'un au-dessus de l'autre (.pack())
+
+Soit côte à côte (.grid() avec 2 colonnes)
+
+Tâche 3 : Modifier la fonction rechercher()
+Au lieu de tout mettre dans un seul text=..., sépare :
+
+Température → label_temperature.configure(text=f"{actuel['temperature']}°C")
+
+Autres infos → label_details.configure(text=...)
+
+Tâche 4 : Appliquer la couleur à la température uniquement
+La couleur (bleu/vert/rouge) s'applique uniquement au label température
+
+Les détails restent en noir ou blanc selon le thème
+
+"""
+
+# Amalioration 2
+
+""" 
+🖼️ AMÉLIORATION 2 : Ajouter une image
+Objectif
+Afficher une icône météo à côté de la température (🌞 pour soleil, ☁️ pour nuage, 🌧️ pour pluie, etc.)
+
+Concepts à comprendre
+CustomTkinter peut afficher des images avec CTkImage
+
+Tu peux stocker plusieurs images dans un dictionnaire
+
+L'image change selon le weathercode
+
+Préparation
+Télécharge des icônes PNG (gratuites sur flaticon.com ou utilise des emojis en attendant). 
+Place-les dans un dossier assets/.
+
+Tâches à réaliser
+Tâche 1 : Importer PIL
+python
+from PIL import Image
+Tâche 2 : Créer un dictionnaire d'images
+Associe chaque code météo à une image :
+
+Codes 0-1-2 → image_soleil.png
+
+Codes 3-45-48 → image_nuage.png
+
+Codes 51-65 → image_pluie.png
+
+etc.
+
+Tâche 3 : Charger les images au démarrage
+python
+# Dans l'initialisation de l'interface
+image_soleil = ctk.CTkImage(Image.open("assets/soleil.png"), size=(64, 64))
+Tâche 4 : Créer un label pour l'image
+ctk.CTkLabel(frame_resultat, image=..., text="")
+
+Tâche 5 : Modifier rechercher()
+En fonction du weathercode, choisir la bonne image
+
+Mettre à jour le label d'image avec .configure(image=...)
+
+⚠️ Difficulté
+Les images doivent être conservées en mémoire. Stocke-les dans un dictionnaire qui ne disparaît pas.
+
+✅ Vérification
+Une icône apparaît à côté de la température
+
+L'icône change selon la météo (soleil, pluie, neige, etc.)
+
+
+
+"""
+
+
+
+
+
+
+
+
+
 
 
 # ================ les fonctions API
@@ -63,6 +173,21 @@ def traduire_code_meteo(code):
     return codes.get(code, "❓ Inconnu")
 
 
+def get_emoji_meteo(code):
+    emojis = {
+        0: "image_lumiere_soleil", 1: "image_nuage", 2: "image_nuage", 
+        3: "image_couvert",
+        45: "image_brouillard", 48: "image_brouillard",
+        51: "image_bruine", 53: "image_bruine", 55: "image_bruine",
+        61: "image_pluie", 63: "image_pluie", 65: "image_pluie",
+        71: "image_neige", 73: "image_neige", 75: "image_neige",
+        95: "image_orage", 96: "image_orage", 99: "image_orage"
+    }
+    return emojis.get(code, "❓")
+
+
+
+
 # ================ les fonctions Tkinter
 
 
@@ -99,7 +224,16 @@ def rechercher():
     progress_bar.pack_forget()
     
     actuel = meteo['current_weather']
+    code_meteo = actuel['weathercode']
+    image_a_afficher = dict_images_meteo.get(code_meteo, image_nuage)  # image_nuage par défaut
+    
+    # Mise à jour du label d'image
+    label_image_meteo.configure(image=image_a_afficher, text="")
+   
+
+
     description = traduire_code_meteo(actuel['weathercode'])
+    # description = get_emoji_meteo(actuel['weathercode']) + " " + traduire_code_meteo(actuel['weathercode'])
     
     # Couleur selon la température
     if actuel['temperature'] < 10:
@@ -111,23 +245,29 @@ def rechercher():
     
     # Afficher le résultat (dans un CTkFrame avec fond)
     frame_resultat.configure(fg_color="lightblue")
-    affichage.configure(
+
+    label_temperature.configure(
+        text=f"{actuel['temperature']}°C",
+        text_color=couleur_texte
+    )
+    label_details.configure(    
         text=(
-            f"📍 {coordonnees['nom']}, {coordonnees['pays']}\n"
-            f"🕐 {actuel['time']}\n"
-            f"🌡️ {actuel['temperature']}°C\n"
+            f"📍 {coordonnees['nom']}, {coordonnees['pays']}"
+            f"\n🕐 {actuel['time']}\n"
             f"☁️ {description}\n"
             f"💨 Vent : {actuel['windspeed']} km/h\n"
             f"🧭 Direction : {actuel['winddirection']}°"
-        ),
-        text_color=couleur_texte
+        )
     )
+
+
     # Réafficher le frame résultat
     frame_resultat.pack(pady=10, fill="both", expand=True)
 
 
 def effacer():
-    affichage.configure(text="")
+    label_temperature.configure(text="")
+    label_details.configure(text="")
     frame_resultat.pack_forget()  # Cache le cadre de résultat
     nom_ville.delete(0, tk.END)
 
@@ -137,6 +277,44 @@ def changer_theme():
     new_mode = "Dark" if current_mode == "Light"  else "Light"
     ctk.set_appearance_mode(new_mode)
 
+
+
+# ================= Chargements des images pour les icônes météo au démarrage de l'application
+
+
+# chargement des images pour les icônes météo
+image_soleil = ctk.CTkImage(Image.open("assets/img_meteo_app/soleil.png"), size=(64, 64))
+image_nuage = ctk.CTkImage(Image.open("assets/img_meteo_app/nuageuse.png"), size=(64, 64))
+image_pluie = ctk.CTkImage(Image.open("assets/img_meteo_app/averse.png"), size=(64, 64))
+image_neige = ctk.CTkImage(Image.open("assets/img_meteo_app/neige.png"), size=(64, 64))
+image_orage = ctk.CTkImage(Image.open("assets/img_meteo_app/tonnerre.png"), size=(64, 64)) 
+image_brouillard = ctk.CTkImage(Image.open("assets/img_meteo_app/vent.png"), size=(64, 64)) 
+image_couvert = ctk.CTkImage(Image.open("assets/img_meteo_app/couvert.png"), size=(64, 64))
+image_bruine = ctk.CTkImage(Image.open("assets/img_meteo_app/bruine.png"), size=(64, 64))
+image_lumiere_soleil = ctk.CTkImage(Image.open("assets/img_meteo_app/lumiere_soleil.png"), size=(64, 64))
+
+
+# dictionnaire pour stocker les images et les associer aux codes météo
+dict_images_meteo = {
+    0: image_lumiere_soleil,
+    1: image_nuage,
+    2: image_nuage,
+    3: image_couvert,
+    45: image_brouillard,
+    48: image_brouillard,
+    51: image_bruine,
+    53: image_bruine,
+    55: image_bruine,
+    61: image_pluie,
+    63: image_pluie,
+    65: image_pluie,
+    71: image_neige,
+    73: image_neige,
+    75: image_neige,
+    95: image_orage,
+    96: image_orage,
+    99: image_orage
+}
 
 
 
@@ -223,14 +401,42 @@ progress_bar = ctk.CTkProgressBar(
 frame_resultat = ctk.CTkFrame(frame_principal, corner_radius=10)  # corner_radius=10 pour arrondir les coins du cadre
 # Ne pas le pack() ici, il sera affiché uniquement quand il y a un résultat
 
+# Sous-cadre pour la partie haute (température + image)
+frame_haut = ctk.CTkFrame(frame_resultat, fg_color="transparent")
+frame_haut.pack(pady=(20, 10))
+
+
 
 # Label d'affichage (à l'intérieur du cadre résultat)
-affichage = ctk.CTkLabel(
-    frame_resultat,
+
+label_temperature = ctk.CTkLabel(
+    frame_haut,
     text="",
-    font=ctk.CTkFont(size=12)
-)
-affichage.pack(padx=20, pady=20)
+    font=ctk.CTkFont(size=48, weight="bold") )
+# label_temperature.pack(pady=(20, 10))  # Plus d'espace en haut que en bas
+
+label_details = ctk.CTkLabel(
+    frame_resultat, 
+    text="",
+    font=ctk.CTkFont(size=14) )
+# label_details.pack(pady=(0, 20))  # Plus d'espace en bas que en haut
+
+
+label_image_meteo = ctk.CTkLabel(frame_haut, image= None, text="")
+# label_image_meteo.pack(pady=(0, 10))  # Plus d'espace en bas que en haut
+
+
+# Organisation verticale du cadre résultat
+# Ligne du haut : image + température côte à côte
+
+label_image_meteo.pack(in_=frame_haut, side="left", padx=10)
+label_temperature.pack(in_=frame_haut, side="left", padx=10)
+
+# Détails en dessous
+label_details.pack(pady=(0, 20))
+
+
+
 
 # Bouton effacer
 ctk.CTkButton(
