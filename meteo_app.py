@@ -11,108 +11,120 @@ import urllib.request
 import json
 
 # ================ Les ameliorations : 
-# Amelioration 1
+
 """ 
-🚀 AMÉLIORATION 1 : Température en très grand
+💾 AMÉLIORATION 3 : Sauvegarde de la dernière ville
 Objectif
-Afficher la température dans un label séparé, avec une police beaucoup plus grande (ex: taille 48),
- pour que ce soit l'information principale de l'interface.
+Quand l'utilisateur ferme et rouvre l'application, la dernière ville recherchée est automatiquement rechargée.
 
 Concepts à comprendre
-Un CTkLabel peut avoir une police différente des autres
+json.dump() : sauvegarder des données
 
-Tu peux avoir plusieurs labels dans le même frame
+json.load() : charger des données
 
-ctk.CTkFont(size=48, weight="bold")
+try/except : gérer l'absence du fichier
 
 Tâches à réaliser
-Tâche 1 : Créer un label spécifique pour la température
-Dans la zone d'affichage, crée deux labels au lieu d'un seul :
+Tâche 1 : Créer une fonction sauvegarder_derniere_ville(ville)
+Ouvre un fichier derniere_ville.json
 
-label_temperature (police très grande)
+Écrit la ville à l'intérieur
 
-label_details (police normale pour le reste)
+Utilise json.dump()
 
-Tâche 2 : Organiser ces deux labels
-Soit l'un au-dessus de l'autre (.pack())
+Tâche 2 : Appeler cette fonction après une recherche réussie
+Dans rechercher(), après avoir trouvé la météo
 
-Soit côte à côte (.grid() avec 2 colonnes)
+Sauvegarde ville (le nom tapé)
 
-Tâche 3 : Modifier la fonction rechercher()
-Au lieu de tout mettre dans un seul text=..., sépare :
+Tâche 3 : Créer une fonction charger_derniere_ville()
+Essaie d'ouvrir derniere_ville.json
 
-Température → label_temperature.configure(text=f"{actuel['temperature']}°C")
+Si le fichier existe, retourne la ville
 
-Autres infos → label_details.configure(text=...)
+Sinon, retourne None
 
-Tâche 4 : Appliquer la couleur à la température uniquement
-La couleur (bleu/vert/rouge) s'applique uniquement au label température
+Tâche 4 : Au démarrage de l'application
+Appelle charger_derniere_ville()
 
-Les détails restent en noir ou blanc selon le thème
+Si une ville existe :
+
+La mettre dans l'Entry
+
+Appeler automatiquement rechercher() pour afficher la météo
+
+Tâche 5 : Gérer l'absence de fichier
+Si le fichier n'existe pas (premier lancement), ne rien faire
+
+Format du fichier JSON
+json
+{
+    "derniere_ville": "Paris"
+}
+✅ Vérification
+Après avoir recherché "Tokyo", ferme et rouvre l'app → Tokyo apparaît
+
+La météo se charge automatiquement au démarrage
+
+Si aucune ville sauvegardée, l'app est vide (pas d'erreur)
 
 """
 
-# Amalioration 2
 
-""" 
-🖼️ AMÉLIORATION 2 : Ajouter une image
+""" Amélioration 4 :  Bouton "Ma position"
 Objectif
-Afficher une icône météo à côté de la température (🌞 pour soleil, ☁️ pour nuage, 🌧️ pour pluie, etc.)
+L'utilisateur peut cliquer sur un bouton pour obtenir la météo à sa position actuelle (via géolocalisation IP).
 
 Concepts à comprendre
-CustomTkinter peut afficher des images avec CTkImage
+API de géolocalisation par IP (gratuite, sans clé)
 
-Tu peux stocker plusieurs images dans un dictionnaire
+Une API retourne la ville approximative à partir de l'adresse IP
 
-L'image change selon le weathercode
+API à utiliser
+text
+https://ipapi.co/json/
+Cette API retourne (entre autres) :
 
-Préparation
-Télécharge des icônes PNG (gratuites sur flaticon.com ou utilise des emojis en attendant). 
-Place-les dans un dossier assets/.
+city : la ville
+country_name : le pays
+latitude et longitude
 
 Tâches à réaliser
-Tâche 1 : Importer PIL
-python
-from PIL import Image
-Tâche 2 : Créer un dictionnaire d'images
-Associe chaque code météo à une image :
+Tâche 1 : Créer une fonction get_position_actuelle()
+Appelle l'API https://ipapi.co/json/
 
-Codes 0-1-2 → image_soleil.png
+Extrait la city du JSON
 
-Codes 3-45-48 → image_nuage.png
+Retourne le nom de la ville
 
-Codes 51-65 → image_pluie.png
+Tâche 2 : Créer un bouton "📍 Ma position"
+Dans frame_principal, ajouter un bouton à côté du champ de saisie
 
-etc.
+Texte : "📍 Ma position" ou "📍 Me localiser"
 
-Tâche 3 : Charger les images au démarrage
-python
-# Dans l'initialisation de l'interface
-image_soleil = ctk.CTkImage(Image.open("assets/soleil.png"), size=(64, 64))
-Tâche 4 : Créer un label pour l'image
-ctk.CTkLabel(frame_resultat, image=..., text="")
+Tâche 3 : Créer la fonction me_localiser()
+Appelle get_position_actuelle()
 
-Tâche 5 : Modifier rechercher()
-En fonction du weathercode, choisir la bonne image
+Met la ville trouvée dans nom_ville
 
-Mettre à jour le label d'image avec .configure(image=...)
+Appelle rechercher()
+
+Tâche 4 : Gérer les erreurs
+Si l'API ne répond pas → message d'erreur
+
+Si la ville n'est pas trouvée → message approprié
 
 ⚠️ Difficulté
-Les images doivent être conservées en mémoire. Stocke-les dans un dictionnaire qui ne disparaît pas.
+L'API par IP donne une approximation (pas la position exacte). Pour une ville à 5km près, c'est suffisant.
 
 ✅ Vérification
-Une icône apparaît à côté de la température
+Le bouton "Ma position" existe
 
-L'icône change selon la météo (soleil, pluie, neige, etc.)
+En cliquant, la météo de ta ville approximative s'affiche
 
-
+Le champ de saisie se remplit automatiquement
 
 """
-
-
-
-
-
 
 
 
@@ -188,6 +200,48 @@ def get_emoji_meteo(code):
 
 
 
+
+def get_position_actuelle():
+    """Utilise une API pour obtenir la position actuelle de l'utilisateur (ville)"""
+    
+    # Première tentative : ipinfo.io
+    try:
+        reponse = urllib.request.urlopen("https://ipinfo.io/json")
+        donnees = reponse.read().decode('utf-8')
+        info = json.loads(donnees)
+        ville = info.get('city')
+        if ville:
+            return ville
+    except Exception as e:
+        print("Erreur ipinfo.io :", e)
+    
+    # Deuxième tentative : ipapi.co (alternative gratuite)
+    try:
+        reponse = urllib.request.urlopen("https://ipapi.co/json/")
+        donnees = reponse.read().decode('utf-8')
+        info = json.loads(donnees)
+        ville = info.get('city')
+        if ville:
+            return ville
+    except Exception as e:
+        print("Erreur ipapi.co :", e)
+    
+    return None  # Si les deux APIs échouent
+
+
+
+def me_localiser():
+    ville = get_position_actuelle()
+    if ville:
+        nom_ville.delete(0, tk.END)  # Efface le champ de saisie
+        nom_ville.insert(0, ville)  # Met la ville trouvée dans le champ de saisie
+        rechercher()  
+    else:
+        messagebox.showerror("Erreur", "Impossible de récupérer votre position actuelle.")
+
+
+
+
 # ================ les fonctions Tkinter
 
 
@@ -197,6 +251,10 @@ def rechercher():
     if not ville:
         messagebox.showerror("Erreur", "Veuillez entrer un nom de ville.")
         return
+    
+    # Sauvegarde la ville recherchée dans un fichier JSON
+    sauvegarder_derniere_ville(ville)  
+    
     
     # Démarrer la barre de progression
     progress_bar.pack(pady=10)
@@ -254,7 +312,7 @@ def rechercher():
         text=(
             f"📍 {coordonnees['nom']}, {coordonnees['pays']}"
             f"\n🕐 {actuel['time']}\n"
-            f"☁️ {description}\n"
+            f"{description}\n"
             f"💨 Vent : {actuel['windspeed']} km/h\n"
             f"🧭 Direction : {actuel['winddirection']}°"
         )
@@ -279,7 +337,26 @@ def changer_theme():
 
 
 
-# ================= Chargements des images pour les icônes météo au démarrage de l'application
+# sauvergarde de la dernière ville recherchée dans un fichier JSON
+def sauvegarder_derniere_ville(ville):
+    with open("derniere_ville.json", "w") as f:
+        json.dump({"derniere_ville": ville}, f)
+
+# chargement de la dernière ville recherchée au démarrage de l'application
+def charger_derniere_ville():
+    try:
+        with open("derniere_ville.json", "r") as f:
+            data = json.load(f)
+            return data.get("derniere_ville")
+    except FileNotFoundError:
+        return None
+
+
+
+
+
+
+# ============ Chargements des images pour les icônes météo au démarrage de l'application
 
 
 # chargement des images pour les icônes météo
@@ -315,6 +392,8 @@ dict_images_meteo = {
     96: image_orage,
     99: image_orage
 }
+
+
 
 
 
@@ -368,15 +447,35 @@ ctk.CTkLabel(
     font=ctk.CTkFont(size=14, weight="bold")
 ).pack(pady=10)
 
-# Champ de saisie
-nom_ville = ctk.CTkEntry(
-    frame_principal,
+
+
+# Frame horizontal pour champ + bouton
+frame_recherche = ctk.CTkFrame(frame_principal, fg_color="transparent")
+frame_recherche.pack(pady=10)  # fill="x" pour que le frame prenne toute la largeur disponible
+
+
+# champs de saisie du nom de la ville
+nom_ville =  ctk.CTkEntry(
+    frame_recherche,
     width=300,
     height=40,
     font=ctk.CTkFont(size=12),
     placeholder_text="Ex : Abidjan, Paris, New York..."
 )
-nom_ville.pack()
+nom_ville.pack(side="left", padx=(0, 10))
+
+
+# Bouton "Ma position"
+btn_position = ctk.CTkButton(
+    frame_recherche,
+    text= "📍 Me localiser",
+    width=100,
+    height=40,
+    fg_color="#28B463",  
+    command=lambda: me_localiser()
+)
+btn_position.pack(side="left")
+
 
 # Bouton recherche
 ctk.CTkButton(
@@ -450,6 +549,18 @@ ctk.CTkButton(
 
 # Raccourci clavier
 fenetre.bind("<Return>", lambda event: rechercher())
+
+
+
+
+
+# Charge la dernière ville recherchée au démarrage de l'application
+derniere_ville = charger_derniere_ville()  
+if derniere_ville:
+    nom_ville.insert(0, derniere_ville)  # Met la ville dans l'Entry
+    rechercher()  # Appelle automatiquement la fonction de recherche pour afficher la météo
+
+
 
 
 fenetre.mainloop()
