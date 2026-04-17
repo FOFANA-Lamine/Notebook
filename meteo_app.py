@@ -12,117 +12,59 @@ import json
 
 # ================ Les ameliorations : 
 
-""" 
-💾 AMÉLIORATION 3 : Sauvegarde de la dernière ville
+""" Amelioration 5 : Prévisions 5 jours
 Objectif
-Quand l'utilisateur ferme et rouvre l'application, la dernière ville recherchée est automatiquement rechargée.
+Afficher les prévisions météo pour les 5 prochains jours (température max/min, probabilité pluie).
 
 Concepts à comprendre
-json.dump() : sauvegarder des données
+L'API Open-Meteo a un paramètre daily pour les prévisions
 
-json.load() : charger des données
-
-try/except : gérer l'absence du fichier
-
-Tâches à réaliser
-Tâche 1 : Créer une fonction sauvegarder_derniere_ville(ville)
-Ouvre un fichier derniere_ville.json
-
-Écrit la ville à l'intérieur
-
-Utilise json.dump()
-
-Tâche 2 : Appeler cette fonction après une recherche réussie
-Dans rechercher(), après avoir trouvé la météo
-
-Sauvegarde ville (le nom tapé)
-
-Tâche 3 : Créer une fonction charger_derniere_ville()
-Essaie d'ouvrir derniere_ville.json
-
-Si le fichier existe, retourne la ville
-
-Sinon, retourne None
-
-Tâche 4 : Au démarrage de l'application
-Appelle charger_derniere_ville()
-
-Si une ville existe :
-
-La mettre dans l'Entry
-
-Appeler automatiquement rechercher() pour afficher la météo
-
-Tâche 5 : Gérer l'absence de fichier
-Si le fichier n'existe pas (premier lancement), ne rien faire
-
-Format du fichier JSON
-json
-{
-    "derniere_ville": "Paris"
-}
-✅ Vérification
-Après avoir recherché "Tokyo", ferme et rouvre l'app → Tokyo apparaît
-
-La météo se charge automatiquement au démarrage
-
-Si aucune ville sauvegardée, l'app est vide (pas d'erreur)
-
-"""
-
-
-""" Amélioration 4 :  Bouton "Ma position"
-Objectif
-L'utilisateur peut cliquer sur un bouton pour obtenir la météo à sa position actuelle (via géolocalisation IP).
-
-Concepts à comprendre
-API de géolocalisation par IP (gratuite, sans clé)
-
-Une API retourne la ville approximative à partir de l'adresse IP
+Les données sont horaires, il faut les grouper par jour
 
 API à utiliser
 text
-https://ipapi.co/json/
-Cette API retourne (entre autres) :
-
-city : la ville
-country_name : le pays
-latitude et longitude
-
+https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=5&timezone=Europe/Paris
 Tâches à réaliser
-Tâche 1 : Créer une fonction get_position_actuelle()
-Appelle l'API https://ipapi.co/json/
+Tâche 1 : Créer une fonction get_previsions(lat, lon)
+Appelle l'API avec les paramètres daily et forecast_days=5
 
-Extrait la city du JSON
+Retourne les données JSON
 
-Retourne le nom de la ville
+Tâche 2 : Créer une nouvelle fenêtre pour les prévisions
+Utiliser ctk.CTkToplevel() pour une fenêtre secondaire
 
-Tâche 2 : Créer un bouton "📍 Ma position"
-Dans frame_principal, ajouter un bouton à côté du champ de saisie
+Titre : "Prévisions 5 jours"
 
-Texte : "📍 Ma position" ou "📍 Me localiser"
+Tâche 3 : Créer un bouton "Prévisions 5 jours"
+Dans frame_principal, ajouter un bouton
 
-Tâche 3 : Créer la fonction me_localiser()
-Appelle get_position_actuelle()
+Commande : ouvrir la fenêtre et afficher les prévisions
 
-Met la ville trouvée dans nom_ville
+Tâche 4 : Afficher les prévisions dans la nouvelle fenêtre
+Pour chaque jour (5 jours), afficher :
 
-Appelle rechercher()
+Date (ex: "Lundi 15 avril")
 
-Tâche 4 : Gérer les erreurs
-Si l'API ne répond pas → message d'erreur
+Température max/min (ex: "🌡️ 12°C / 18°C")
 
-Si la ville n'est pas trouvée → message approprié
+Probabilité de pluie (ex: "☔ 30%")
 
-⚠️ Difficulté
-L'API par IP donne une approximation (pas la position exacte). Pour une ville à 5km près, c'est suffisant.
+Tâche 5 : Organisation de la fenêtre
+Utiliser .grid() pour aligner les jours en colonnes
+
+Ou .pack() pour une liste verticale
+
+⚠️ Attention
+La fenêtre doit être non modale (l'utilisateur peut retourner à la fenêtre principale)
+
+Les dates sont au format "YYYY-MM-DD", à transformer en jour lisible
 
 ✅ Vérification
-Le bouton "Ma position" existe
+Le bouton "Prévisions 5 jours" existe
 
-En cliquant, la météo de ta ville approximative s'affiche
+Une nouvelle fenêtre s'ouvre
 
-Le champ de saisie se remplit automatiquement
+Les 5 jours s'affichent avec températures et probabilité pluie
 
 """
 
@@ -241,6 +183,18 @@ def me_localiser():
 
 
 
+def get_previsions(latitude, longitude):
+    url_previsions = f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=5&timezone=Europe/Paris"
+
+    try:
+        reponse = urllib.request.urlopen(url_previsions)
+        donnees = reponse.read().decode('utf-8')
+        return json.loads(donnees)
+    except Exception as e:
+        print("Erreur lors de la requête à l'API de prévisions :", e)
+        return None
+
+
 
 # ================ les fonctions Tkinter
 
@@ -352,6 +306,74 @@ def charger_derniere_ville():
         return None
 
 
+
+def ouvrir_fenetre_previsions():
+    # Récupérer la ville actuelle
+    ville = nom_ville.get().strip()
+    if not ville:
+        messagebox.showerror("Erreur", "Veuillez entrer une ville pour voir les prévisions.")
+        return
+    
+    # Récupérer les coordonnées
+    coordonnees = get_coordonnees(ville)
+    if not coordonnees:
+        messagebox.showerror("Erreur", f"Impossible de trouver les coordonnées pour '{ville}'.")
+        return
+    
+    # Récupérer les prévisions
+    previsions = get_previsions(coordonnees['latitude'], coordonnees['longitude'])
+    if not previsions:
+        messagebox.showerror("Erreur", "Impossible de récupérer les prévisions.")
+        return
+    
+    # Création de la nouvelle fenêtre
+    fenetre_previsions = ctk.CTkToplevel(fenetre)
+    fenetre_previsions.title("Prévisions 5 jours")
+    fenetre_previsions.geometry("450x400")
+    fenetre_previsions.grab_set()  # Fenêtre modale
+    
+    # Titre dans la nouvelle fenêtre
+    ctk.CTkLabel(
+        fenetre_previsions,
+        text=f"Prévisions pour {ville}",
+        font=ctk.CTkFont(size=16, weight="bold")
+    ).pack(pady=10)
+    
+    # Récupérer les données
+    jours = previsions['daily']['time']
+    temp_max = previsions['daily']['temperature_2m_max']
+    temp_min = previsions['daily']['temperature_2m_min']
+    pluie = previsions['daily']['precipitation_probability_max']
+    
+    # Fonction pour convertir la date en jour lisible
+    import datetime
+    jours_fr = {
+        "Monday": "Lundi", "Tuesday": "Mardi", "Wednesday": "Mercredi",
+        "Thursday": "Jeudi", "Friday": "Vendredi", "Saturday": "Samedi",
+        "Sunday": "Dimanche"
+    }
+    
+    # Afficher chaque jour
+    for i in range(len(jours)):
+        date_obj = datetime.datetime.fromisoformat(jours[i])
+        nom_jour = jours_fr.get(date_obj.strftime("%A"), date_obj.strftime("%A"))
+        date_formatee = f"{nom_jour} {date_obj.day}/{date_obj.month}"
+        
+        # Choix de l'emoji selon la pluie
+        emoji_pluie = "☔" if pluie[i] > 50 else "💧" if pluie[i] > 20 else "☀️"
+        
+        ctk.CTkLabel(
+            fenetre_previsions,
+            text=f"{date_formatee} : 🌡️ {temp_min[i]:.0f}°C - {temp_max[i]:.0f}°C  |  {emoji_pluie} {pluie[i]}%",
+            font=ctk.CTkFont(size=13)
+        ).pack(pady=8, anchor="w", padx=20)
+    
+    # Bouton fermer
+    ctk.CTkButton(
+        fenetre_previsions,
+        text="Fermer",
+        command=fenetre_previsions.destroy  
+    ).pack(pady=20)
 
 
 
@@ -477,14 +499,34 @@ btn_position = ctk.CTkButton(
 btn_position.pack(side="left")
 
 
-# Bouton recherche
-ctk.CTkButton(
-    frame_principal,
+
+# Frame horizontal pour Rechercher + Effacer
+frame_effacer = ctk.CTkFrame(frame_principal, fg_color="transparent")
+frame_effacer.pack(pady=10) 
+
+btn_rechercher = ctk.CTkButton(
+    frame_effacer,
     text="Rechercher",
     width=100,
     height=40,
     command=rechercher
-).pack(pady=10)
+)
+btn_rechercher.pack(side="left", padx=(0, 10))
+
+btn_effacer = ctk.CTkButton(
+    frame_effacer,
+    text="Effacer",
+    width=80,
+    height=40,
+    fg_color="gray",
+    command=effacer
+)
+btn_effacer.pack(side="left", padx=(0, 10))
+
+
+# Raccourci clavier
+fenetre.bind("<Return>", lambda event: rechercher())
+
 
 
 # Barre de progression (cachée au départ)
@@ -494,6 +536,20 @@ progress_bar = ctk.CTkProgressBar(
     mode="indeterminate"   
 )
 # Ne pas la pack() ici, elle sera affichée uniquement pendant la recherche
+
+# Bouton pour les prévisions 5 jours
+
+btn_previsions = ctk.CTkButton(
+    frame_principal,
+    text="📅 Prévisions 5 jours",
+    width=150,
+    height=40,
+    fg_color="#8E44AD",  
+    command=ouvrir_fenetre_previsions  
+    )
+btn_previsions.pack(pady=10)
+
+
 
 
 # Cadre pour le résultat (caché au départ)
@@ -537,28 +593,14 @@ label_details.pack(pady=(0, 20))
 
 
 
-# Bouton effacer
-ctk.CTkButton(
-    frame_principal,
-    text="Effacer",
-    fg_color="gray",
-    width=80,
-    height=40,
-    command=effacer
-).pack(pady=5)
-
-# Raccourci clavier
-fenetre.bind("<Return>", lambda event: rechercher())
-
-
-
-
 
 # Charge la dernière ville recherchée au démarrage de l'application
 derniere_ville = charger_derniere_ville()  
 if derniere_ville:
     nom_ville.insert(0, derniere_ville)  # Met la ville dans l'Entry
     rechercher()  # Appelle automatiquement la fonction de recherche pour afficher la météo
+
+
 
 
 
